@@ -46,6 +46,8 @@ library(ggplot2)
 library(lattice)
 library(wesanderson)
 library(ggformula)
+library(lmtest)
+library(gtsummary)
 
 pal <- wes_palette("Zissou1", 5, type = "continuous")
 
@@ -177,6 +179,32 @@ library(ggformula)
 
 # Analysis
 
+## Granger causality test
+
+Questions:
+
+- How to determine good number of lags?
+- How to apply over many people?
+
+To read in more depth: https://davegiles.blogspot.com/2011/04/testing-for-granger-causality.html
+
+```{r}
+
+tmp <- rbind(phys.df %>% filter(ind == "X1"),
+             mood.df %>% filter(ind == "X1")) %>%
+      pivot_wider(id_cols = "day", names_from = "type", values_from = "polarity")
+
+paged_table(tmp)
+
+gt.moodphys <- grangertest(mood ~ phys, order = 3, data = tmp)
+gt.physmood <- grangertest(phys ~ mood, order = 3, data = tmp)
+
+gt.moodphys
+gt.physmood
+#tbl_regression(gt.tmp)
+
+```
+
 ## Spline? Sine wave?
 
 Not sure what I should use to flexibly fit a function (assuming that's the right thing to do) ...
@@ -186,6 +214,11 @@ Maybe try(?):
 - fit some ?spline function for the monthly clinical data ("ground truth A")
 - fit some ?spline function for the weekly mood diary data ("ground truth B")
 - try and fit functions A and B with changeable left-shift for the wearables data and see if it picks up the lag time?
+
+Limitations of this approach:
+
+- don't know in real data if the exact same trend is followed across datasets! 
+- might just be looking for any change preceding depression defined using ground truth A and ground truth B ... ?Bayesian approach since prior is strong and n is small?
 
 ```{r}
 
