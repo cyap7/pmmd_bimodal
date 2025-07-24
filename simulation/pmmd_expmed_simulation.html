@@ -1492,14 +1492,22 @@ border-radius: 0px;
 <li>compare: clinical (monthly) vs mood (self-report weekly) vs
 wearables (continuous but say daily)</li>
 </ul>
-<p>Aim to recover:</p>
+<p>Questions of interest for the human study:</p>
+<ul>
+<li>can wearables data predict onset of depression defined using mood
+self-report and/or clinical impression?</li>
+<li>how much earlier can wearables data predict depression (vs mood
+self-report and clinical impression)?</li>
+</ul>
+<p>Questions for this simulation:</p>
 <ol style="list-style-type: decimal">
-<li>lag time between wearables vs mood; wearables vs clinical</li>
-<li>when wearables data from the individual can definitively say
-“depression” vs a mood-based definition of depression (say: 2
-consecutive negative points taken 1 week apart) vs clinical-based
-definition of depression (say: 2 consecutive negative points taken 1
-month apart)</li>
+<li>Can we recover simulated lag time between wearables vs mood;
+wearables vs clinical?</li>
+<li>Can we identify some threshold when wearables data from the
+individual can definitively diagnose “depression” vs a mood-based
+definition of depression (eg. 2 consecutive negative points taken 1 week
+apart) vs clinical-based definition of depression (eg. 2 consecutive
+negative points taken 1 month apart)</li>
 </ol>
 <p>Simulation set-up:</p>
 <ul>
@@ -1516,7 +1524,7 @@ depressed mood</li>
 <p>Assumptions:</p>
 <ul>
 <li>that lag between modalities across individuals is similar (+/- some
-error)</li>
+error). This may not be true in practice!!</li>
 </ul>
 </div>
 <div id="libraries" class="section level1" number="2">
