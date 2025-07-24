@@ -1,0 +1,196 @@
+---
+title: "PMMD Experimental Medicine simulation"
+output: html
+---
+
+# Libraries
+
+```{r}
+
+library(tidyverse)
+library(ggplot2)
+library(lattice)
+library(wesanderson)
+
+pal <- wes_palette("Zissou1", 5, type = "continuous")
+
+```
+
+# Simulation
+
+Example
+- compare: clinical vs mood (self-report weekly) vs wearables
+
+Aiming to recover:
+- time to detection of depression
+
+Simulation set-up:
+- similar duration of episode between people
+- variable amplitude between people
+- similar lag between modalities across individuals
+
+Assumptions:
+- that lag between modalities across individuals is similar (+/- some error)
+
+## Sine wave
+
+Additional assumptions:
+- sine wave (better if could use function that stops oscillating after returning to 0)
+
+### Simulate physical activity (daily)
+
+```{r}
+
+# Simulate physical activity level (daily)
+pday <- seq(from = 1, to = 364, by = 1) # number of days of observation
+duration <- 300
+b <- 2*pi/duration
+n <- 20 # sample size
+
+pp <- rnorm(n, b, 0.001) # different period for each ind
+ps <- rnorm(n, duration/4, 0.01) # different shift of episode for each ind
+pa <- rnorm(n, 1, 0.5)
+
+phys <- matrix(nrow = length(pday), ncol = n)
+for (i in 1:ncol(phys)) {
+ phys[,i] <- pa[i]*sin(pp[i]*(pday + ps[i])) + rnorm(length(pday), 0, 0.3) # add noise
+}
+phys.df <- data.frame(day = pday, phys, type = "phys") %>% pivot_longer(cols = (-c(day, type)), names_to = "ind", values_to = "polarity")
+
+ggplot(phys.df, aes(x = day, y = polarity)) + geom_point() +
+  facet_wrap(~ ind)
+
+```
+
+## Simulate mood (weekly)
+
+```{r}
+
+# Simulate mood diary (weekly)
+mday <- seq(from = 1, to = 364, by = 7) # number of days of observation
+duration <- 300
+b <- 2*pi/duration
+n <- 20 # sample size
+lag <- -7
+
+# Assume that the relationship between activity and mood for each individual has 
+# - similar period
+# - similar lag (specified as 7 days here)
+mp <- NULL
+ms <- NULL
+ma <- NULL
+for (i in 1:n) {
+  mp <- c(mp, rnorm(1, pp[i], 0.0001))
+  ms <- c(ms, rnorm(1, ps[i] + lag, 0.0001))
+  ma <- c(ma, rnorm(1, pa[i], 0.0001))
+}
+
+mood <- matrix(nrow = length(mday), ncol = n)
+for (i in 1:ncol(mood)) {
+ mood[,i] <- ma[i]*sin(mp[i]*(mday + ms[i])) + rnorm(length(mday), 0, 0.3) # add noise
+}
+mood.df <- data.frame(day = mday, mood, type = "mood") %>% pivot_longer(cols = (-c(day, type)), names_to = "ind", values_to = "polarity")
+
+ggplot(mood.df, aes(x = day, y = polarity)) + geom_point() +
+  facet_wrap(~ ind)
+
+```
+
+## Clinical (monthly)
+
+```{r}
+
+# Simulate clinical (monthly)
+cday <- seq(from = 1, to = 364, by = 28) # number of days of observation
+duration <- 300
+b <- 2*pi/duration
+n <- 20 # sample size
+lag <- -14
+
+# Assume that the relationship between activity and clinical detection for each individual has 
+# - similar period
+# - similar lag (specified as 14 days here)
+cp <- NULL
+cs <- NULL
+ca <- NULL
+for (i in 1:n) {
+  cp <- c(cp, rnorm(1, pp[i], 0.0001))
+  cs <- c(cs, rnorm(1, ps[i] + lag, 0.0001))
+  ca <- c(ca, rnorm(1, pa[i], 0.0001))
+}
+
+clin <- matrix(nrow = length(cday), ncol = n)
+for (i in 1:ncol(clin)) {
+ clin[,i] <- ca[i]*sin(cp[i]*(cday + cs[i])) + rnorm(length(cday), 0, 0.3) # add noise
+}
+clin.df <- data.frame(day = cday, clin, type = "clinical") %>% pivot_longer(cols = (-c(day, type)), names_to = "ind", values_to = "polarity")
+
+ggplot(clin.df, aes(x = day, y = polarity)) + geom_point() +
+  facet_wrap(~ ind)
+
+```
+
+## Visualise all data together
+
+```{r}
+
+sine.df <- full_join(phys.df, mood.df) %>% full_join(., clin.df)
+ggplot(sine.df, aes(x = day, y = polarity, colour = type)) + 
+  geom_point(alpha = 0.5) + 
+  scale_colour_manual(values = pal) +
+  theme_bw() + theme(legend.position = "none") + 
+  facet_wrap(~ ind)
+
+```
+
+## Rational 
+
+library(phonTools) # for sinc() function
+library(splines)
+library(broom)
+library(ggformula)
+
+### Simulate physical activity (daily)
+
+```{r}
+
+
+
+```
+
+# Analysis
+
+## Spline
+
+```{r}
+
+spline()
+foo <- sine.df %>% filter(ind == "X1" & type == "phys")
+
+tmp <- ggplot(sine.df, aes(x = day, y = polarity, colour = type)) + 
+  geom_point(alpha = 0.) + 
+  geom_spline() + 
+  scale_colour_manual(values = pal) +
+  theme_bw() +
+  facet_wrap(~ ind)
+tmp
+
+tmp <- ggplot(sine.df, aes(x = day, y = polarity, colour = type)) + 
+  geom_point(alpha = 0.5) + 
+  geom_smooth(method = lm, 
+              formula = y ~ splines::bs(x, knots = 2)) +
+  scale_colour_manual(values = pal) +
+  theme_bw() +
+  facet_wrap(~ ind)
+tmp
+
+```
+
+# Extensions
+
+- changing midline: https://math.libretexts.org/Bookshelves/Precalculus/Book%3A_Precalculus__An_Investigation_of_Functions_%28Lippman_and_Rasmussen%29/07%3A_Trigonometric_Equations_and_Identities/7.04%3A_Modeling_Changing_Amplitude_and_Midline 
+- dampened sine wave
+
+```{r}
+
+```
