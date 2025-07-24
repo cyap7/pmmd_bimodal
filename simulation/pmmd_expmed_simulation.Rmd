@@ -44,13 +44,15 @@ library(ggformula)
 
 pal <- wes_palette("Zissou1", 5, type = "continuous")
 
+set.seed(1234)
+
 ```
 
 # Simulation for Aim 1
 
 ## Model as sine wave
 
-- sine wave (better if could use function that stops oscillating after returning to 0)
+- sine wave BUT better if could use function that stops oscillating after returning to 0 ... Assuming that people have mania --> depression --> euthymia afterwards
 
 ### Simulate wearables (daily sampling)
 
@@ -73,7 +75,8 @@ for (i in 1:ncol(phys)) {
 phys.df <- data.frame(day = pday, phys, type = "phys") %>% pivot_longer(cols = (-c(day, type)), names_to = "ind", values_to = "polarity")
 
 ggplot(phys.df, aes(x = day, y = polarity)) + geom_point() +
-  facet_wrap(~ ind)
+  facet_wrap(~ ind) +
+  geom_hline(yintercept=-0.5) + geom_hline(yintercept=0.5)
 
 ```
 
@@ -107,7 +110,8 @@ for (i in 1:ncol(mood)) {
 mood.df <- data.frame(day = mday, mood, type = "mood") %>% pivot_longer(cols = (-c(day, type)), names_to = "ind", values_to = "polarity")
 
 ggplot(mood.df, aes(x = day, y = polarity)) + geom_point() +
-  facet_wrap(~ ind)
+  facet_wrap(~ ind) +
+  geom_hline(yintercept=-0.5) + geom_hline(yintercept=0.5)
 
 ```
 
@@ -141,7 +145,8 @@ for (i in 1:ncol(clin)) {
 clin.df <- data.frame(day = cday, clin, type = "clinical") %>% pivot_longer(cols = (-c(day, type)), names_to = "ind", values_to = "polarity")
 
 ggplot(clin.df, aes(x = day, y = polarity)) + geom_point() +
-  facet_wrap(~ ind)
+  facet_wrap(~ ind) +
+  geom_hline(yintercept=-0.5) + geom_hline(yintercept=0.5)
 
 ```
 
@@ -171,6 +176,11 @@ library(ggformula)
 
 Not sure what I should use to flexibly fit a function (assuming that's the right thing to do) ...
 
+Maybe try(?):
+
+- fit some ?spline function for the monthly clinical data ("ground truth A")
+- fit some ?spline function for the weekly mood diary data ("ground truth B")
+- try and fit functions A and B with changeable left-shift for the wearables data and see if it picks up the lag time?
 
 ```{r}
 
