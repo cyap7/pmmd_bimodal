@@ -7,6 +7,7 @@ output:
       toc: true
       number_sections: true
       toc_float: true
+      code_folding: hide
 ---
 
 ```{r setup, include=FALSE} 
@@ -236,6 +237,11 @@ gt.moodphys.p <- unlist(lapply(1:n, function(x) gt.moodphys[[x]]$`Pr(>F)`[2]))
 gt.physmood.p <- unlist(lapply(1:n, function(x) gt.physmood[[x]]$`Pr(>F)`[2]))
 
 gt.p.df <- data.frame(id = paste("X", seq(1, n, 1), sep = ""), gt_p_moodphys = gt.moodphys.p, gt_p_physmood = gt.physmood.p)
+
+paste("False negative rate with p<0.05:", gt.p.df %>% filter(gt_p_moodphys > 0.05) %>% nrow / n)
+paste("False positive rate with p<0.05:", gt.p.df %>% filter(gt_p_physmood <= 0.05) %>% nrow / n)
+paste("False negative rate with Bonf correction:", gt.p.df %>% filter(gt_p_moodphys > 0.05/n) %>% nrow / n)
+paste("False positive rate with Bonf correction:", gt.p.df %>% filter(gt_p_physmood <= 0.05/n) %>% nrow / n)
 
 ggplot(gt.p.df, aes(x = -log10(gt_p_physmood), y = -log10(gt_p_moodphys))) +
   geom_point() +
