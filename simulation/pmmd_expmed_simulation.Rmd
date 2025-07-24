@@ -1,43 +1,58 @@
 ---
-title: "PMMD Experimental Medicine simulation"
-output: html
+title: "PMMD BiMODAL simulation"
+author: "Chloe Yap"
+date: "`r Sys.Date()`"
+output:
+  html_document:
+      toc: true
+      number_sections: true
+      toc_float: true
 ---
+
+# Simulation set-up 
+
+- compare: clinical (monthly) vs mood (self-report weekly) vs wearables (continuous but say daily)
+
+Aim to recover:
+
+1. lag time between wearables vs mood; wearables vs clinical
+2. when wearables data from the individual can definitively say "depression" vs a mood-based definition of depression (say: 2 consecutive negative points taken 1 week apart) vs clinical-based definition of depression (say: 2 consecutive negative points taken 1 month apart)
+
+Simulation set-up:
+
+- thresholds for mood: y > 0.5 = elevated mood vs y < -0.5 = depressed mood
+- similar duration of episode between people
+- variable amplitude between people
+- similar lag between modalities across individuals
+  + lag for mood vs wearable = 7 days behind
+  + lag for clinical vs wearable = 14 days behind
+
+Assumptions:
+
+- that lag between modalities across individuals is similar (+/- some error)
 
 # Libraries
 
-```{r}
+```{r, message=F}
 
+library(rmarkdown)
 library(tidyverse)
 library(ggplot2)
 library(lattice)
 library(wesanderson)
+library(ggformula)
 
 pal <- wes_palette("Zissou1", 5, type = "continuous")
 
 ```
 
-# Simulation
+# Simulation for Aim 1
 
-Example
-- compare: clinical vs mood (self-report weekly) vs wearables
+## Model as sine wave
 
-Aiming to recover:
-- time to detection of depression
-
-Simulation set-up:
-- similar duration of episode between people
-- variable amplitude between people
-- similar lag between modalities across individuals
-
-Assumptions:
-- that lag between modalities across individuals is similar (+/- some error)
-
-## Sine wave
-
-Additional assumptions:
 - sine wave (better if could use function that stops oscillating after returning to 0)
 
-### Simulate physical activity (daily)
+### Simulate wearables (daily sampling)
 
 ```{r}
 
@@ -62,7 +77,7 @@ ggplot(phys.df, aes(x = day, y = polarity)) + geom_point() +
 
 ```
 
-## Simulate mood (weekly)
+### Simulate mood (weekly)
 
 ```{r}
 
@@ -96,7 +111,7 @@ ggplot(mood.df, aes(x = day, y = polarity)) + geom_point() +
 
 ```
 
-## Clinical (monthly)
+### Clinical (monthly)
 
 ```{r}
 
@@ -130,7 +145,7 @@ ggplot(clin.df, aes(x = day, y = polarity)) + geom_point() +
 
 ```
 
-## Visualise all data together
+### Visualise all data together
 
 ```{r}
 
@@ -143,28 +158,24 @@ ggplot(sine.df, aes(x = day, y = polarity, colour = type)) +
 
 ```
 
-## Rational 
+## Extensions to consider
 
 library(phonTools) # for sinc() function
 library(splines)
 library(broom)
 library(ggformula)
 
-### Simulate physical activity (daily)
-
-```{r}
-
-
-
-```
-
 # Analysis
 
-## Spline
+## Spline? Sine wave?
+
+Not sure what I should use to flexibly fit a function (assuming that's the right thing to do) ...
+
 
 ```{r}
 
-spline()
+# spline() ???
+
 foo <- sine.df %>% filter(ind == "X1" & type == "phys")
 
 tmp <- ggplot(sine.df, aes(x = day, y = polarity, colour = type)) + 
@@ -186,7 +197,7 @@ tmp
 
 ```
 
-# Extensions
+# (IGNORE): Extensions
 
 - changing midline: https://math.libretexts.org/Bookshelves/Precalculus/Book%3A_Precalculus__An_Investigation_of_Functions_%28Lippman_and_Rasmussen%29/07%3A_Trigonometric_Equations_and_Identities/7.04%3A_Modeling_Changing_Amplitude_and_Midline 
 - dampened sine wave
