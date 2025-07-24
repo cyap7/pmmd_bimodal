@@ -9,6 +9,10 @@ output:
       toc_float: true
 ---
 
+```{r setup, include=FALSE} 
+knitr::opts_chunk$set(warning = FALSE, message = FALSE) 
+```
+
 # Simulation set-up 
 
 - compare: clinical (monthly) vs mood (self-report weekly) vs wearables (continuous but say daily)
@@ -32,9 +36,11 @@ Simulation set-up:
   + lag for mood vs wearable = 7 days behind
   + lag for clinical vs wearable = 14 days behind
 
-Assumptions:
+Issues:
 
-- that lag between modalities across individuals is similar (+/- some error). This may not be true in practice!!
+- assuming in this simulation that lag between modalities across individuals is similar (+/- some error). This may not be true in practice!!
+- assuming that the lag "looks the same" across modalities
+- **ground truth mood might be trickier to assess than on first glance ... People who are manic often feel great. Also not necessarily able to assume that people are euthymic from the start of study collection. So what's ground truth baseline/euthymia?**
 
 # Libraries
 
@@ -188,20 +194,56 @@ Questions:
 
 To read in more depth: https://davegiles.blogspot.com/2011/04/testing-for-granger-causality.html
 
-```{r}
+```{r, warnings = F, messages = F}
 
-tmp <- rbind(phys.df %>% filter(ind == "X1"),
-             mood.df %>% filter(ind == "X1")) %>%
+gt.moodphys <- list()
+gt.physmood <- list()
+
+for (i in 1:n) {
+  tmp <- rbind(phys.df %>% filter(ind == paste("X", i, sep = "")),
+             mood.df %>% filter(ind == paste("X", i, sep = ""))) %>%
       pivot_wider(id_cols = "day", names_from = "type", values_from = "polarity")
 
-paged_table(tmp)
+  paged_table(tmp)
 
-gt.moodphys <- grangertest(mood ~ phys, order = 3, data = tmp)
-gt.physmood <- grangertest(phys ~ mood, order = 3, data = tmp)
+  gt.moodphys[[i]] <- grangertest(mood ~ phys, order = 3, data = tmp)
+  gt.physmood[[i]] <- grangertest(phys ~ mood, order = 3, data = tmp)
 
-gt.moodphys
-gt.physmood
-#tbl_regression(gt.tmp)
+}
+
+gt.moodphys.tbl <- lapply(gt.moodphys, tbl_regression)
+gt.physmood.tbl <- lapply(gt.physmood, tbl_regression)
+
+tbl_merge(tbls = gt.moodphys.tbl, tab_spanner = paste("X", seq(1, n, 1), sep = ""))
+tbl_merge(tbls = gt.physmood.tbl, tab_spanner = paste("X", seq(1, n, 1), sep = ""))
+
+```
+
+### Plot p-values
+
+False positive/negatives shown with:
+
+- dotted line for p<0.05
+- dashed line for Bonferroni correction
+- Q1: true + for mood ~ phys / true - for phys ~ mood
+- Q2: true + for mood ~ phys / false + for phys ~ mood
+- Q3: false - for mood ~ phys / true - for phys ~ mood
+- Q4: false - for mood ~ phys / false + for phys ~ mood
+
+```{r}
+
+gt.moodphys.p <- unlist(lapply(1:n, function(x) gt.moodphys[[x]]$`Pr(>F)`[2]))
+gt.physmood.p <- unlist(lapply(1:n, function(x) gt.physmood[[x]]$`Pr(>F)`[2]))
+
+gt.p.df <- data.frame(id = paste("X", seq(1, n, 1), sep = ""), gt_p_moodphys = gt.moodphys.p, gt_p_physmood = gt.physmood.p)
+
+ggplot(gt.p.df, aes(x = -log10(gt_p_physmood), y = -log10(gt_p_moodphys))) +
+  geom_point() +
+  theme_bw() +
+  geom_hline(yintercept = -log10(0.05), linetype = "dotted") +
+  geom_hline(yintercept = -log10(0.05/n), linetype = "dashed") +
+  geom_vline(xintercept = -log10(0.05), linetype = "dotted") +
+  geom_vline(xintercept = -log10(0.05/n), linetype = "dashed")
 
 ```
 
