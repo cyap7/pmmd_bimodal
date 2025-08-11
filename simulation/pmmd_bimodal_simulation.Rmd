@@ -43,8 +43,6 @@ Issues:
 - assuming that the lag "looks the same" across modalities
 - **ground truth mood might be trickier to assess than on first glance ... People who are manic often feel great. Also not necessarily able to assume that people are euthymic from the start of study collection. So what's ground truth baseline/euthymia?**
 
-# Libraries
-
 ```{r, message=F}
 
 library(rmarkdown)
@@ -66,6 +64,11 @@ set.seed(1234)
 
 ## Model as sine wave
 
+```{r}
+n <- 50
+noise <- 0.1
+```
+
 - sine wave BUT better if could use function that stops oscillating after returning to 0 ... Assuming that people have mania --> depression --> euthymia afterwards
 
 ### Simulate wearables (daily sampling)
@@ -76,7 +79,6 @@ set.seed(1234)
 pday <- seq(from = 1, to = 364, by = 1) # number of days of observation
 duration <- 300
 b <- 2*pi/duration
-n <- 20 # sample size
 
 pp <- rnorm(n, b, 0.001) # different period for each ind
 ps <- rnorm(n, duration/4, 0.01) # different shift of episode for each ind
@@ -84,7 +86,7 @@ pa <- rnorm(n, 1, 0.5)
 
 phys <- matrix(nrow = length(pday), ncol = n)
 for (i in 1:ncol(phys)) {
- phys[,i] <- pa[i]*sin(pp[i]*(pday + ps[i])) + rnorm(length(pday), 0, 0.3) # add noise
+ phys[,i] <- pa[i]*sin(pp[i]*(pday + ps[i])) + rnorm(length(pday), 0, noise) # add noise
 }
 phys.df <- data.frame(day = pday, phys, type = "phys") %>% pivot_longer(cols = (-c(day, type)), names_to = "ind", values_to = "polarity")
 
@@ -102,7 +104,6 @@ ggplot(phys.df, aes(x = day, y = polarity)) + geom_point() +
 mday <- seq(from = 1, to = 364, by = 7) # number of days of observation
 duration <- 300
 b <- 2*pi/duration
-n <- 20 # sample size
 lag <- -7
 
 # Assume that the relationship between activity and mood for each individual has 
@@ -119,7 +120,7 @@ for (i in 1:n) {
 
 mood <- matrix(nrow = length(mday), ncol = n)
 for (i in 1:ncol(mood)) {
- mood[,i] <- ma[i]*sin(mp[i]*(mday + ms[i])) + rnorm(length(mday), 0, 0.3) # add noise
+ mood[,i] <- ma[i]*sin(mp[i]*(mday + ms[i])) + rnorm(length(mday), 0, noise) # add noise
 }
 mood.df <- data.frame(day = mday, mood, type = "mood") %>% pivot_longer(cols = (-c(day, type)), names_to = "ind", values_to = "polarity")
 
@@ -137,7 +138,6 @@ ggplot(mood.df, aes(x = day, y = polarity)) + geom_point() +
 cday <- seq(from = 1, to = 364, by = 28) # number of days of observation
 duration <- 300
 b <- 2*pi/duration
-n <- 20 # sample size
 lag <- -14
 
 # Assume that the relationship between activity and clinical detection for each individual has 
@@ -154,7 +154,7 @@ for (i in 1:n) {
 
 clin <- matrix(nrow = length(cday), ncol = n)
 for (i in 1:ncol(clin)) {
- clin[,i] <- ca[i]*sin(cp[i]*(cday + cs[i])) + rnorm(length(cday), 0, 0.3) # add noise
+ clin[,i] <- ca[i]*sin(cp[i]*(cday + cs[i])) + rnorm(length(cday), 0, noise) # add noise
 }
 clin.df <- data.frame(day = cday, clin, type = "clinical") %>% pivot_longer(cols = (-c(day, type)), names_to = "ind", values_to = "polarity")
 
@@ -174,6 +174,18 @@ ggplot(sine.df, aes(x = day, y = polarity, colour = type)) +
   scale_colour_manual(values = pal) +
   theme_bw() + theme(legend.position = "none") + 
   facet_wrap(~ ind)
+
+ggplot(sine.df %>% filter(ind == "X1") %>% mutate(ind = "example person 1"), aes(x = day, y = polarity, colour = type)) + 
+  geom_point(alpha = 0.4) + 
+  geom_spline() + 
+  scale_colour_manual(values = pal[c(5,1,3)]) +
+  theme_bw() +
+  theme(legend.position = "bottom", legend.margin=margin(c(0.1,0.1,0.1,0.1))) +
+  facet_wrap(~ ind)
+ggsave("~/OneDrive - Nexus365/Research/Projects/Postmania_depression/PMMD_ExpMed/sim_fig_example.png", width = 3, height = 3)
+
+
+paged_table(sine.df)
 
 ```
 
@@ -199,21 +211,28 @@ To read in more depth: https://davegiles.blogspot.com/2011/04/testing-for-grange
 
 gt.moodphys <- list()
 gt.physmood <- list()
+gt.clinphys <- list()
+gt.physclin <- list()
 
 for (i in 1:n) {
   tmp <- rbind(phys.df %>% filter(ind == paste("X", i, sep = "")),
-             mood.df %>% filter(ind == paste("X", i, sep = ""))) %>%
+             mood.df %>% filter(ind == paste("X", i, sep = "")),
+             clin.df %>% filter(ind == paste("X", i, sep = ""))) %>%
       pivot_wider(id_cols = "day", names_from = "type", values_from = "polarity")
 
-  paged_table(tmp)
+  #paged_table(tmp)
 
   gt.moodphys[[i]] <- grangertest(mood ~ phys, order = 3, data = tmp)
   gt.physmood[[i]] <- grangertest(phys ~ mood, order = 3, data = tmp)
+  gt.clinphys[[i]] <- grangertest(clinical ~ phys, order = 3, data = tmp)
+  gt.physclin[[i]] <- grangertest(phys ~ clinical, order = 3, data = tmp)
 
 }
 
 gt.moodphys.tbl <- lapply(gt.moodphys, tbl_regression)
 gt.physmood.tbl <- lapply(gt.physmood, tbl_regression)
+gt.clinphys.tbl <- lapply(gt.clinphys, tbl_regression)
+gt.physclin.tbl <- lapply(gt.physclin, tbl_regression)
 
 tbl_merge(tbls = gt.moodphys.tbl, tab_spanner = paste("X", seq(1, n, 1), sep = ""))
 tbl_merge(tbls = gt.physmood.tbl, tab_spanner = paste("X", seq(1, n, 1), sep = ""))
@@ -235,15 +254,36 @@ False positive/negatives shown with:
 
 gt.moodphys.p <- unlist(lapply(1:n, function(x) gt.moodphys[[x]]$`Pr(>F)`[2]))
 gt.physmood.p <- unlist(lapply(1:n, function(x) gt.physmood[[x]]$`Pr(>F)`[2]))
+gt.clinphys.p <- unlist(lapply(1:n, function(x) gt.clinphys[[x]]$`Pr(>F)`[2]))
+gt.physclin.p <- unlist(lapply(1:n, function(x) gt.physclin[[x]]$`Pr(>F)`[2]))
 
-gt.p.df <- data.frame(id = paste("X", seq(1, n, 1), sep = ""), gt_p_moodphys = gt.moodphys.p, gt_p_physmood = gt.physmood.p)
+gt.p.df <- data.frame(id = paste("X", seq(1, n, 1), sep = ""), gt_p_moodphys = gt.moodphys.p, gt_p_physmood = gt.physmood.p, gt_p_clinphys = gt.clinphys.p, gt_p_physclin = gt.physclin.p)
 
-paste("False negative rate with p<0.05:", gt.p.df %>% filter(gt_p_moodphys > 0.05) %>% nrow / n)
-paste("False positive rate with p<0.05:", gt.p.df %>% filter(gt_p_physmood <= 0.05) %>% nrow / n)
-paste("False negative rate with Bonf correction:", gt.p.df %>% filter(gt_p_moodphys > 0.05/n) %>% nrow / n)
-paste("False positive rate with Bonf correction:", gt.p.df %>% filter(gt_p_physmood <= 0.05/n) %>% nrow / n)
+paste("mood < phys: False negative rate with p<0.05:", gt.p.df %>% filter(gt_p_moodphys > 0.05) %>% nrow / n)
+paste("phys < mood: False positive rate with p<0.05:", gt.p.df %>% filter(gt_p_physmood <= 0.05) %>% nrow / n)
+paste("mood < phys: False negative rate with Bonf correction:", gt.p.df %>% filter(gt_p_moodphys > 0.05/n) %>% nrow / n)
+paste("phys < mood: False positive rate with Bonf correction:", gt.p.df %>% filter(gt_p_physmood <= 0.05/n) %>% nrow / n)
+
+paste("clin < phys: False negative rate with p<0.05:", gt.p.df %>% filter(gt_p_clinphys > 0.05) %>% nrow / n)
+paste("phys < clin: False positive rate with p<0.05:", gt.p.df %>% filter(gt_p_physclin <= 0.05) %>% nrow / n)
+paste("clin < phys: False negative rate with Bonf correction:", gt.p.df %>% filter(gt_p_clinphys > 0.05/n) %>% nrow / n)
+paste("phys < clin: False positive rate with Bonf correction:", gt.p.df %>% filter(gt_p_physclin <= 0.05/n) %>% nrow / n)
+
+library(metaRNASeq)
+print(fishercomb(gt.moodphys.p))
+print(fishercomb(gt.physmood.p))
+print(fishercomb(gt.clinphys.p))
+print(fishercomb(gt.physclin.p))
 
 ggplot(gt.p.df, aes(x = -log10(gt_p_physmood), y = -log10(gt_p_moodphys))) +
+  geom_point() +
+  theme_bw() +
+  geom_hline(yintercept = -log10(0.05), linetype = "dotted") +
+  geom_hline(yintercept = -log10(0.05/n), linetype = "dashed") +
+  geom_vline(xintercept = -log10(0.05), linetype = "dotted") +
+  geom_vline(xintercept = -log10(0.05/n), linetype = "dashed")
+
+ggplot(gt.p.df, aes(x = -log10(gt_p_physclin), y = -log10(gt_p_clinphys))) +
   geom_point() +
   theme_bw() +
   geom_hline(yintercept = -log10(0.05), linetype = "dotted") +
