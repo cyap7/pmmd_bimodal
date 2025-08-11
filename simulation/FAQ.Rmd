@@ -1,0 +1,41 @@
+---
+title: "FAQ"
+output: html_document
+---
+
+# Frequently Asked Questions
+
+## Why 300 for the 'duration'?
+
+Arbitrary heuristic to make curves look good.
+
+## "Thresholds for mood: y > 0.5 = elevated mood vs y < -0.5 = depressed mood", what's domain of Y? Y is from -1 to 1? 0 is neutral mood?
+
+Domain I didn’t specify because my initial thought was that it would range a lot between people. 
+More specifically now I think about it:
+Physical activity - I’m not sure what the domain would be for this. It could be standardised, but the question would be to what. People are recovering so it’s a moving target and I can’t assume that people would be at “baseline” at any particular point (other than defining this based on “normal" self-report and clinical assessment).
+Self-report mood could be measured in a few ways
+1 to 10 self rating
+For depression (the negative values) I’d use the PHQ-9 questionnaire: a scale of 0-27 where 0 its no depression and 10 represents a cut-off of moderate depression
+For mania (the positive values) the scale would be different to the depression-specific one, using Young Mania Rating Scale on a scale of 0-60 with 20+ indicating mania threshold
+Clinical:
+Research-grade clinical assessment: -7 to +7 domain
+Routine clinical assessment (also important to include): it would be a categorical depressed / normal / manic
+
+## 4. "Similar lag between modalities across individuals + lag for mood vs wearable = 7 days behind + lag for clinical vs wearable = 14 days behind", what does it mean exactly? 
+
+Everyone has the same pattern of lag. 
+
+Ie. everyone has 7 days lag between the wearable/physical activity measure to the emergence of mood symptoms.
+
+Then everyone has 14 days lag between the wearable/physical activity measure to clinical detection of depression. 
+
+I think this may be violated - some people might have mood change before the physical activity change.
+
+## What is euthymia in your words/context of project? 
+
+"Normal mood"
+
+
+
+
